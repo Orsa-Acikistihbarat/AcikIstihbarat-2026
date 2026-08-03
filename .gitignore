@@ -1,0 +1,12 @@
+node_modules/
+.next/
+dist/
+bin/
+obj/
+*.user
+.vs/
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+MedyaKutuphanesi/MedyaKutuphanesi/
+*.bak

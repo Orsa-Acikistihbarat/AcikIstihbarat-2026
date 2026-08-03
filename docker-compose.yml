@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    container_name: acik_db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "11433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    networks:
+      - acik-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  api:
+    build:
+      context: ./AcikIstihbarat.API
+      dockerfile: Dockerfile
+    container_name: acik_api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db;Database=AcikIstihbaratYeniDB2026;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true
+      - FileStorage__MedyaKutuphanesiPath=/app/MedyaKutuphanesi
+    ports:
+      - "15128:8080"
+    volumes:
+      - ./MedyaKutuphanesi:/app/MedyaKutuphanesi
+    networks:
+      - acik-network
+
+  frontend:
+    build:
+      context: ./acik-istihbarat-public
+      dockerfile: Dockerfile
+    container_name: acik_frontend
+    depends_on:
+      - api
+    environment:
+      # Use the external port for the browser to reach the API
+      - NEXT_PUBLIC_API_URL=http://localhost:15128/api/public
+      # Use the internal Docker network for SSR / Server Components
+      - INTERNAL_API_URL=http://api:8080/api/public
+    ports:
+      - "14000:3000"
+    networks:
+      - acik-network
+
+  admin:
+    build:
+      context: ./acik-istihbarat-admin
+      dockerfile: Dockerfile
+      args:
+        # Bake the external API URL into the static Vite app at build time
+        - VITE_API_URL=http://localhost:15128/api/admin
+    container_name: acik_admin
+    depends_on:
+      - api
+    ports:
+      - "15173:80"
+    networks:
+      - acik-network
+
+networks:
+  acik-network:
+    driver: bridge
+
+volumes:
+  sqldata:

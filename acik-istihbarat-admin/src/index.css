@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@source "../node_modules/preline";
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Outfit', system-ui, sans-serif;
+  
+  --color-turquoise-50: #ecfeff;
+  --color-turquoise-100: #cffafe;
+  --color-turquoise-200: #a5f3fc;
+  --color-turquoise-300: #67e8f9;
+  --color-turquoise-400: #22d3ee;
+  --color-turquoise-500: #06b6d4;
+  --color-turquoise-600: #0891b2;
+  --color-turquoise-700: #0e7490;
+  --color-turquoise-800: #155e75;
+  --color-turquoise-900: #164e63;
+  --color-turquoise-950: #083344;
+
+  --color-bordeaux-50: #fdf2f4;
+  --color-bordeaux-100: #fce4e9;
+  --color-bordeaux-200: #facbd6;
+  --color-bordeaux-300: #f5a3b9;
+  --color-bordeaux-400: #ed7395;
+  --color-bordeaux-500: #e0446f;
+  --color-bordeaux-600: #c92a54;
+  --color-bordeaux-700: #a91f42;
+  --color-bordeaux-800: #8d1c3a;
+  --color-bordeaux-900: #761a33;
+  --color-bordeaux-950: #420a18;
+
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-fade-in-up: fade-in-up 0.5s ease-out;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fade-in-up {
+    from { 
+      opacity: 0; 
+      transform: translateY(20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+}
+
+:root {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+}
+
+@utility glass-panel {
+  @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 shadow-xl;
+}
+
+@utility glass-header {
+  @apply bg-white/70 dark:bg-slate-950/70 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50;
+}
+
+::selection {
+  @apply bg-turquoise-200 text-turquoise-900 dark:bg-turquoise-900 dark:text-turquoise-100;
+}

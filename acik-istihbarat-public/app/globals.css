@@ -1,0 +1,111 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source "../node_modules/preline";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-outfit);
+
+  /* Turquoise - Primary Accent (Cyan scale for more blueish tone) */
+  --color-turquoise-50: #ecfeff;
+  --color-turquoise-100: #cffafe;
+  --color-turquoise-200: #a5f3fc;
+  --color-turquoise-300: #67e8f9;
+  --color-turquoise-400: #22d3ee;
+  --color-turquoise-500: #06b6d4;
+  --color-turquoise-600: #0891b2;
+  --color-turquoise-700: #0e7490;
+  --color-turquoise-800: #155e75;
+  --color-turquoise-900: #164e63;
+  --color-turquoise-950: #083344;
+
+  /* Bordeaux - Subtle Highlights */
+  --color-bordeaux-50: #fdf2f4;
+  --color-bordeaux-100: #fce7eb;
+  --color-bordeaux-200: #f7cbd4;
+  --color-bordeaux-300: #f09eae;
+  --color-bordeaux-400: #e6667e;
+  --color-bordeaux-500: #d63352;
+  --color-bordeaux-600: #be1c3a;
+  --color-bordeaux-700: #a0132c;
+  --color-bordeaux-800: #861328;
+  --color-bordeaux-900: #711425;
+  --color-bordeaux-950: #400611;
+  
+  --animate-fade-in-up: fade-in-up 0.5s ease-out;
+  --animate-hover-glow: hover-glow 0.3s ease-in-out;
+}
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hover-glow {
+  0% { box-shadow: 0 0 0 rgba(20, 184, 166, 0); }
+  100% { box-shadow: 0 0 15px rgba(20, 184, 166, 0.4); }
+}
+
+:root {
+  --background: #f8fafc; /* slate-50 */
+  --foreground: #0f172a; /* slate-900 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #020617; /* slate-950 */
+    --foreground: #f8fafc; /* slate-50 */
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--color-turquoise-200);
+  color: var(--color-turquoise-950);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::selection {
+    background-color: var(--color-turquoise-800);
+    color: var(--color-turquoise-50);
+  }
+}
+
+/* Glassmorphism Utilities */
+@utility glass-panel {
+  @apply bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/40 dark:border-white/5 shadow-[0_4px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.2)];
+}
+
+@utility glass-header {
+  @apply bg-white/85 dark:bg-slate-950/85 backdrop-blur-[16px] border-b border-slate-200/60 dark:border-slate-700/40;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 4px;
+}
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #334155; /* slate-700 */
+  }
+}
