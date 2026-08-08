@@ -1,0 +1,11 @@
+acikistihbarat.com, www.acikistihbarat.com {
+    reverse_proxy frontend:3000
+}
+
+api.acikistihbarat.com {
+    reverse_proxy api:8080
+}
+
+admin.acikistihbarat.com {
+    reverse_proxy admin:80
+}

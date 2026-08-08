@@ -51,7 +51,7 @@ services:
       - api
     environment:
       # Use the external port for the browser to reach the API
-      - NEXT_PUBLIC_API_URL=http://localhost:15128/api/public
+      - NEXT_PUBLIC_API_URL=https://api.acikistihbarat.com/api/public
       # Use the internal Docker network for SSR / Server Components
       - INTERNAL_API_URL=http://api:8080/api/public
     ports:
@@ -65,7 +65,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Bake the external API URL into the static Vite app at build time
-        - VITE_API_URL=http://localhost:15128/api/admin
+        - VITE_API_URL=https://api.acikistihbarat.com/api/admin
     container_name: acik_admin
     depends_on:
       - api
@@ -74,9 +74,29 @@ services:
     networks:
       - acik-network
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: acik_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - acik-network
+    depends_on:
+      - frontend
+      - api
+      - admin
+
 networks:
   acik-network:
     driver: bridge
 
 volumes:
   sqldata:
+  caddy_data:
+  caddy_config:
