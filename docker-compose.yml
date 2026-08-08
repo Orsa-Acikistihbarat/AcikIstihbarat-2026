@@ -78,6 +78,9 @@ services:
     image: caddy:2-alpine
     container_name: acik_caddy
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     ports:
       - "80:80"
       - "443:443"
