@@ -46,6 +46,8 @@ services:
     build:
       context: ./acik-istihbarat-public
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.acikistihbarat.com/api/public
     container_name: acik_frontend
     depends_on:
       - api
