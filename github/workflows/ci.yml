@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: Orsa-Acikistihbarat/.github/.github/workflows/reusable-ci.yml@main
+    with:
+      runtime: node
+      node_version: "20"
+      run_build: true
+    secrets: inherit
