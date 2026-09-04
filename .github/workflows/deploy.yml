@@ -1,0 +1,114 @@
+name: Deploy to VPS (Docker)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "artifact/**"
+      - "docker-compose.yml"
+      - "compose.yml"
+      - "Dockerfile"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: production-docker-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Validate required secrets/variables
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          COMPOSE_FILE: ${{ vars.COMPOSE_FILE }}
+          APP_SERVICE: ${{ vars.APP_SERVICE }}
+          APP_IMAGE: ${{ vars.APP_IMAGE }}
+        run: |
+          test -n "$VPS_HOST" || (echo "Missing secret: VPS_HOST" && exit 1)
+          test -n "$VPS_USER" || (echo "Missing secret: VPS_USER" && exit 1)
+          test -n "$VPS_SSH_PRIVATE_KEY" || (echo "Missing secret: VPS_SSH_PRIVATE_KEY" && exit 1)
+          test -n "$VPS_PORT" || (echo "Missing variable: VPS_PORT" && exit 1)
+          test -n "$DEPLOY_PATH" || (echo "Missing variable: DEPLOY_PATH" && exit 1)
+          test -n "$COMPOSE_FILE" || (echo "Missing variable: COMPOSE_FILE" && exit 1)
+          test -n "$APP_SERVICE" || (echo "Missing variable: APP_SERVICE" && exit 1)
+          test -n "$APP_IMAGE" || (echo "Missing variable: APP_IMAGE" && exit 1)
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ vars.VPS_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Create release tarball
+        run: |
+          if [ ! -d artifact ]; then
+            echo "artifact/ folder not found. Nothing to deploy."
+            exit 1
+          fi
+          tar -czf release.tar.gz artifact
+
+      - name: Upload artifact to VPS
+        run: |
+          scp -P "${{ vars.VPS_PORT }}" release.tar.gz "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/release.tar.gz"
+
+      - name: Deploy with Docker Compose on VPS
+        run: |
+          ssh -p "${{ vars.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" << 'EOF'
+            set -euo pipefail
+
+            DEPLOY_PATH="${{ vars.DEPLOY_PATH }}"
+            COMPOSE_FILE="${{ vars.COMPOSE_FILE }}"
+            APP_SERVICE="${{ vars.APP_SERVICE }}"
+            APP_IMAGE="${{ vars.APP_IMAGE }}"
+            IMAGE_TAG="${{ github.sha }}"
+
+            mkdir -p "$DEPLOY_PATH/releases/$IMAGE_TAG"
+            tar -xzf /tmp/release.tar.gz -C "$DEPLOY_PATH/releases/$IMAGE_TAG"
+            rm -f /tmp/release.tar.gz
+
+            # Move artifact contents up if needed
+            if [ -d "$DEPLOY_PATH/releases/$IMAGE_TAG/artifact" ]; then
+              shopt -s dotglob
+              mv "$DEPLOY_PATH/releases/$IMAGE_TAG/artifact/"* "$DEPLOY_PATH/releases/$IMAGE_TAG/" || true
+              rmdir "$DEPLOY_PATH/releases/$IMAGE_TAG/artifact" || true
+            fi
+
+            cd "$DEPLOY_PATH"
+
+            # Ensure compose file exists in DEPLOY_PATH
+            if [ ! -f "$COMPOSE_FILE" ]; then
+              echo "Compose file not found at $DEPLOY_PATH/$COMPOSE_FILE"
+              exit 1
+            fi
+
+            # Build and restart only target service using new artifact context
+            # Assumes compose service build context points to ./current or similar strategy below.
+            rm -rf "$DEPLOY_PATH/current"
+            ln -sfn "$DEPLOY_PATH/releases/$IMAGE_TAG" "$DEPLOY_PATH/current"
+
+            # Export IMAGE_TAG for compose if your compose uses ${IMAGE_TAG}
+            export IMAGE_TAG="$IMAGE_TAG"
+            export APP_IMAGE="$APP_IMAGE"
+
+            # Pull (if image-based) or build (if build-based), then restart
+            docker compose -f "$COMPOSE_FILE" pull "$APP_SERVICE" || true
+            docker compose -f "$COMPOSE_FILE" build "$APP_SERVICE"
+            docker compose -f "$COMPOSE_FILE" up -d "$APP_SERVICE"
+
+            # Optional cleanup: remove dangling images
+            docker image prune -f || true
+
+            docker compose -f "$COMPOSE_FILE" ps
+          EOF
