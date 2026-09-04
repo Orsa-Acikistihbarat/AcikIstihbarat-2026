@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   ci:
-    uses: Orsa-Acikistihbarat/.github/.github/workflows/reusable-ci.yml@main
+    uses: Orsa-Acikistihbarat/.github/workflows/reusable-ci.yml@main
     with:
       runtime: node
       node_version: "20"
