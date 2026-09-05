@@ -50,7 +50,7 @@ jobs:
             git reset --hard origin/main
 
             docker compose build frontend api admin
-            docker compose up -d frontend api admin
+            docker compose up -d
 
             # Optional cleanup: remove dangling images
             docker image prune -f || true
