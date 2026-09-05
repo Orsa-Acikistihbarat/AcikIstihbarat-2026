@@ -58,6 +58,8 @@ services:
       - INTERNAL_API_URL=http://api:8080/api/public
     ports:
       - "14000:3000"
+    volumes:
+      - ./acik-istihbarat-public/public/acikmedya:/app/public/acikmedya
     networks:
       - acik-network
 
@@ -73,6 +75,19 @@ services:
       - api
     ports:
       - "15173:80"
+    networks:
+      - acik-network
+
+  acikmedya-webhook:
+    build:
+      context: ./acikmedya-webhook
+      dockerfile: Dockerfile
+    container_name: acik_acikmedya_webhook
+    environment:
+      - WEBHOOK_TOKEN=${ACIKMEDYA_WEBHOOK_TOKEN}
+      - TARGET_DIR=/data/acikmedya
+    volumes:
+      - ./acik-istihbarat-public/public/acikmedya:/data/acikmedya
     networks:
       - acik-network
 
@@ -96,6 +111,7 @@ services:
       - frontend
       - api
       - admin
+      - acikmedya-webhook
 
 networks:
   acik-network:

@@ -10,3 +10,5 @@ appsettings.*.json
 !appsettings.json
 MedyaKutuphanesi/MedyaKutuphanesi/
 *.bak
+.env
+acik-istihbarat-public/public/acikmedya/index.html

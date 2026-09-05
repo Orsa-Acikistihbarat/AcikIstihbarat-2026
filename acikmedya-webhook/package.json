@@ -1,0 +1,13 @@
+{
+  "name": "acikmedya-webhook",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tiny internal webhook that receives self-contained HTML and writes it atomically to the acikmedya publish folder.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

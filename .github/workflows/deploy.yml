@@ -50,7 +50,7 @@ jobs:
             git reset --hard origin/main
 
             docker compose down --remove-orphans
-            docker compose build frontend api admin
+            docker compose build frontend api admin acikmedya-webhook
             docker compose up -d
 
             # Optional cleanup: remove dangling images
