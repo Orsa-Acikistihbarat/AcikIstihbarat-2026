@@ -49,6 +49,7 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            docker compose down --remove-orphans
             docker compose build frontend api admin
             docker compose up -d
 
