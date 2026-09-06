@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import PrelineScript from "@/components/PrelineScript";
 
@@ -21,11 +22,14 @@ export const metadata: Metadata = {
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const hdrs = await headers();
+  const isNewsletterRoute = (hdrs.get("x-pathname") ?? "").startsWith("/acikmedya");
+
   return (
     <html
       lang="tr"
@@ -39,11 +43,17 @@ export default function RootLayout({
           <div className="absolute bottom-[-10%] left-[20%] w-[50%] h-[40%] rounded-full bg-turquoise-400/10 dark:bg-turquoise-800/10 blur-[120px]" />
         </div>
 
-        <Header />
-        <main className="flex-grow pt-[80px]">
-          {children}
-        </main>
-        <Footer />
+        {isNewsletterRoute ? (
+          <main className="flex-grow">{children}</main>
+        ) : (
+          <>
+            <Header />
+            <main className="flex-grow pt-[80px]">
+              {children}
+            </main>
+            <Footer />
+          </>
+        )}
         <PrelineScript />
       </body>
     </html>
