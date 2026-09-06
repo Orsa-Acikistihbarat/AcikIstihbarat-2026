@@ -50,3 +50,38 @@ Rules:
 - `413` - payload exceeds 256 KB.
 - `429` - rate limit exceeded.
 - `500` - write failure on the server side.
+
+## Per-folder newsletters (`/hooks/acikmedya/:folder`)
+
+A second, independent endpoint publishes dated newsletter issues into named folders
+instead of the single `/acikmedya` page above. Content lands under
+`acik-istihbarat-public/acikmedya-data/<folder>/` (bind-mounted read-write into this
+container, read-only into `frontend`) and is served by the Next.js app at
+`/acikmedya/<folder>` (App Router route, NOT the raw-file rewrite used by
+`/acikmedya`) — see `acik-istihbarat-public/AGENTS.md` for the frontend side.
+
+```
+curl -X POST https://www.acikistihbarat.com/hooks/acikmedya/AcikGazete \
+  -H "Authorization: Bearer $ACIKMEDYA_WEBHOOK_TOKEN" \
+  -H "Content-Type: text/html" \
+  --data-binary @issue.html
+```
+
+Rules:
+- `:folder` must match `^[A-Za-z0-9_-]+$` and be one of the names listed in
+  `acikmedya-newsletters.json` (repo root) — otherwise `400`/`404`.
+- Same body rules as `/hooks/acikmedya`: self-contained HTML, starts with
+  `<!doctype html`/`<html`, max 256 KB, same bearer token, same 10 req/min rate
+  limit (shared limiter, not a separate bucket per folder).
+- The write is saved as `index<DDMMYY>.html` (e.g. `index060926.html`), where the
+  date is "today" in the `Europe/Istanbul` timezone — NOT taken from the request.
+  Publishing again on the same day overwrites that day's file; publishing on a new
+  day creates a new dated file alongside older ones (nothing is deleted
+  automatically).
+- The frontend always shows the latest file whose date is today-or-earlier
+  (falls back to the most recent past issue if nothing was published today yet).
+
+Response codes for this route: `200` `{status:'ok', folder, filename, bytes}`,
+`400` (bad folder syntax / bad content-type / failed HTML sanity check), `401`
+(bad token), `404` (folder not in the allow-list), `413` (too large), `429` (rate
+limited), `500` (write failure).

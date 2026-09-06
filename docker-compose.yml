@@ -56,10 +56,14 @@ services:
       - NEXT_PUBLIC_API_URL=https://api.acikistihbarat.com/api/public
       # Use the internal Docker network for SSR / Server Components
       - INTERNAL_API_URL=http://api:8080/api/public
+      - NEWSLETTERS_CONFIG_PATH=/app/acikmedya-newsletters.json
+      - NEWSLETTERS_DATA_DIR=/app/acikmedya-data
     ports:
       - "14000:3000"
     volumes:
       - ./acik-istihbarat-public/public/acikmedya:/app/public/acikmedya
+      - ./acikmedya-newsletters.json:/app/acikmedya-newsletters.json:ro
+      - ./acik-istihbarat-public/acikmedya-data:/app/acikmedya-data:ro
     networks:
       - acik-network
 
@@ -86,8 +90,12 @@ services:
     environment:
       - WEBHOOK_TOKEN=${ACIKMEDYA_WEBHOOK_TOKEN}
       - TARGET_DIR=/data/acikmedya
+      - NEWSLETTERS_CONFIG_PATH=/data/acikmedya-newsletters.json
+      - NEWSLETTERS_DATA_DIR=/data/acikmedya-newsletters-data
     volumes:
       - ./acik-istihbarat-public/public/acikmedya:/data/acikmedya
+      - ./acikmedya-newsletters.json:/data/acikmedya-newsletters.json:ro
+      - ./acik-istihbarat-public/acikmedya-data:/data/acikmedya-newsletters-data
     networks:
       - acik-network
 
