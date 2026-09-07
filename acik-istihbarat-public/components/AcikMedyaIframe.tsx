@@ -35,6 +35,15 @@ export default function AcikMedyaIframe({ html, title }: AcikMedyaIframeProps) {
     }
 
     iframe.addEventListener('load', handleLoad);
+
+    // With `srcDoc`, the iframe can finish loading before this effect runs
+    // (React effects fire after paint/commit) - if that already happened,
+    // the 'load' event above will never fire and handleLoad would never
+    // run. Detect that case and call it directly.
+    if (iframe.contentDocument?.readyState === 'complete') {
+      handleLoad();
+    }
+
     return () => {
       iframe.removeEventListener('load', handleLoad);
       ro?.disconnect();
