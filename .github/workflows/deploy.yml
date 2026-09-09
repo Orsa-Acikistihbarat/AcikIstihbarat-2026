@@ -46,6 +46,18 @@ jobs:
 
             cd "${{ vars.DEPLOY_PATH }}"
 
+            # Guard against silently missing mailing-engine credentials in the
+            # VPS's own .env (these are not GitHub secrets - they live only on
+            # the server). A blank refresh token/client id here would make
+            # Gmail OAuth fail with a misleading "refresh token rejected" error
+            # at runtime instead of failing loudly during deploy.
+            for var in MAIL_GMAIL_CLIENT_ID MAIL_GMAIL_CLIENT_SECRET MAIL_GMAIL_REFRESH_TOKEN MAIL_GMAIL_SENDER_ADDRESS; do
+              if ! grep -q "^${var}=.\+" .env; then
+                echo "Missing or empty required .env variable on VPS: ${var}" >&2
+                exit 1
+              fi
+            done
+
             git fetch origin main
             git reset --hard origin/main
 
