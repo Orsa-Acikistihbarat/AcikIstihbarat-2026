@@ -39,7 +39,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p "${{ vars.VPS_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy on VPS (git pull + docker compose build/up)
+      - name: Deploy on VPS (git pull + docker compose build)
         run: |
           ssh -p "${{ vars.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" << 'EOF'
             set -euo pipefail
@@ -51,6 +51,48 @@ jobs:
 
             docker compose down --remove-orphans
             docker compose build frontend api admin acikmedya-webhook
+
+            # Bring the database up first (and wait for it to be healthy)
+            # so pending EF Core migrations can be applied before the API starts.
+            docker compose up -d --wait db
+          EOF
+
+      - name: Run EF Core database migrations
+        run: |
+          ssh -p "${{ vars.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" << 'EOF'
+            set -euo pipefail
+
+            cd "${{ vars.DEPLOY_PATH }}"
+
+            # Build a throwaway image from the API's SDK build-stage (the
+            # runtime image has no dotnet-ef), then run migrations attached
+            # to the db container's own network namespace so it can reach
+            # it as "localhost" regardless of the compose project/network name.
+            docker build --target build -t acik-api-migrate -f AcikIstihbarat.API/Dockerfile AcikIstihbarat.API
+
+            docker run --rm \
+              --network container:acik_db \
+              -w /src \
+              acik-api-migrate \
+              bash -c '
+                set -euo pipefail
+                export PATH="$PATH:/root/.dotnet/tools"
+                dotnet tool install --global dotnet-ef --version 8.*
+                dotnet ef database update \
+                  --connection "Server=localhost;Database=AcikIstihbaratYeniDB2026;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true" \
+                  --project AcikIstihbarat.API.csproj
+              '
+
+            docker rmi acik-api-migrate || true
+          EOF
+
+      - name: Start remaining services
+        run: |
+          ssh -p "${{ vars.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" << 'EOF'
+            set -euo pipefail
+
+            cd "${{ vars.DEPLOY_PATH }}"
+
             docker compose up -d
 
             # Optional cleanup: remove dangling images
