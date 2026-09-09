@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using AcikIstihbarat.API.Models.Entities;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AcikIstihbarat.API.Data
@@ -88,6 +90,33 @@ namespace AcikIstihbarat.API.Data
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public static async Task SeedMailSchedulesAsync(IServiceProvider serviceProvider)
+        {
+            var context = serviceProvider.GetRequiredService<AppDbContext>();
+
+            var defaultSchedules = new[] { "AcikGazete", "AcikKose" };
+
+            foreach (var templateBaseName in defaultSchedules)
+            {
+                var exists = await context.MailSchedules
+                    .AnyAsync(s => s.TemplateBaseName == templateBaseName);
+
+                if (!exists)
+                {
+                    context.MailSchedules.Add(new MailSchedule
+                    {
+                        TemplateBaseName = templateBaseName,
+                        FrequencyType = MailFrequencyType.Daily,
+                        TimeOfDayLocal = new TimeSpan(9, 0, 0),
+                        IsActive = true,
+                        NextRunAtUtc = DateTime.UtcNow.Date.AddDays(1).AddHours(6)
+                    });
+                }
+            }
+
+            await context.SaveChangesAsync();
         }
     }
 }

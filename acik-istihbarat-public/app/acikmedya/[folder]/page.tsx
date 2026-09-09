@@ -20,7 +20,7 @@ export default async function NewsletterFolderPage({ params }: { params: Promise
   const resolved = resolveLatestNewsletterFile(folder);
 
   return (
-    <AcikMedyaLayout>
+    <AcikMedyaLayout activeFolder={folder}>
       {resolved
         ? <AcikMedyaIframe html={resolved.html} title={folder} />
         : <p className="text-center py-20 text-slate-600 dark:text-slate-300">Bu bültenin henüz bir yayını yok.</p>}

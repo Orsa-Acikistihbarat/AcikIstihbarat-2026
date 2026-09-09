@@ -4,6 +4,7 @@ using AcikIstihbarat.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,13 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AcikIstihbarat.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260907202755_AddMailingEngine")]
+    partial class AddMailingEngine
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.30")
+                .HasAnnotation("ProductVersion", "8.0.29")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -235,12 +238,6 @@ namespace AcikIstihbarat.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("ConfirmToken")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("ConfirmTokenExpiresAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("ConsecutiveFailureCount")
                         .HasColumnType("int");
 
@@ -271,8 +268,6 @@ namespace AcikIstihbarat.API.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ConfirmToken");
 
                     b.HasIndex("UnsubscribeToken")
                         .IsUnique();
@@ -332,47 +327,6 @@ namespace AcikIstihbarat.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("MedyaKutuphanesi");
-                });
-
-            modelBuilder.Entity("AcikIstihbarat.API.Models.Entities.PendingConfirmationEmail", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AttemptCount")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("ConfirmToken")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(320)
-                        .HasColumnType("nvarchar(320)");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<DateTime?>("SentAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TemplateDisplayNamesCsv")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SentAt");
-
-                    b.ToTable("PendingConfirmationEmails");
                 });
 
             modelBuilder.Entity("AcikIstihbarat.API.Models.Entities.Yazar", b =>

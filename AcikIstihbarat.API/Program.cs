@@ -34,6 +34,15 @@ builder.Services.AddScoped<AcikIstihbarat.API.Services.IKategoriService, AcikIst
 builder.Services.AddScoped<AcikIstihbarat.API.Services.IHaberService, AcikIstihbarat.API.Services.HaberService>();
 builder.Services.AddScoped<AcikIstihbarat.API.Services.IAramaService, AcikIstihbarat.API.Services.AramaService>();
 
+// Mailing engine
+builder.Services.Configure<AcikIstihbarat.API.Models.DTOs.MailOptions>(builder.Configuration.GetSection("Mail"));
+builder.Services.AddHttpClient("GoogleOAuth");
+builder.Services.AddSingleton<AcikIstihbarat.API.Services.IGmailOAuthTokenProvider, AcikIstihbarat.API.Services.GmailOAuthTokenProvider>();
+builder.Services.AddScoped<AcikIstihbarat.API.Services.IMailTemplateResolver, AcikIstihbarat.API.Services.MailTemplateResolver>();
+builder.Services.AddScoped<AcikIstihbarat.API.Services.IMailSenderService, AcikIstihbarat.API.Services.MailSenderService>();
+builder.Services.AddScoped<AcikIstihbarat.API.Services.IMailingOrchestrator, AcikIstihbarat.API.Services.MailingOrchestrator>();
+builder.Services.AddHostedService<AcikIstihbarat.API.Services.MailSchedulerBackgroundService>();
+
 // Configure EF Core
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -144,6 +153,7 @@ using (var scope = app.Services.CreateScope())
     {
         await DataSeeder.SeedAdminUserAsync(services);
         await DataSeeder.SeedKategorilerAsync(services);
+        await DataSeeder.SeedMailSchedulesAsync(services);
     }
     catch (Exception ex)
     {

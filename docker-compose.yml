@@ -35,10 +35,15 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=db;Database=AcikIstihbaratYeniDB2026;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true
       - FileStorage__MedyaKutuphanesiPath=/app/MedyaKutuphanesi
+      - Mail__GmailOAuth__ClientId=${MAIL_GMAIL_CLIENT_ID}
+      - Mail__GmailOAuth__ClientSecret=${MAIL_GMAIL_CLIENT_SECRET}
+      - Mail__GmailOAuth__RefreshToken=${MAIL_GMAIL_REFRESH_TOKEN}
+      - Mail__GmailOAuth__SenderAddress=${MAIL_GMAIL_SENDER_ADDRESS}
     ports:
       - "15128:8080"
     volumes:
       - ./MedyaKutuphanesi:/app/MedyaKutuphanesi
+      - ./acik-istihbarat-public/acikmedya-data:/app/acikmedya-data:ro
     networks:
       - acik-network
 

@@ -17,6 +17,10 @@ namespace AcikIstihbarat.API.Data
         public DbSet<HaberMedya> HaberMedyalar { get; set; }
         public DbSet<Yazar> Yazarlar { get; set; }
         public DbSet<Yazi> Yazilar { get; set; }
+        public DbSet<MailSubscriber> MailSubscribers { get; set; }
+        public DbSet<MailSchedule> MailSchedules { get; set; }
+        public DbSet<EmailSendLog> EmailSendLogs { get; set; }
+        public DbSet<PendingConfirmationEmail> PendingConfirmationEmails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -53,6 +57,36 @@ namespace AcikIstihbarat.API.Data
                 .HasOne(y => y.Yazar)
                 .WithMany(y => y.Yazilar)
                 .HasForeignKey(y => y.YazarId);
+
+            // Mailing engine
+            builder.Entity<MailSubscriber>()
+                .HasIndex(s => new { s.Email, s.TemplateBaseName })
+                .IsUnique();
+
+            builder.Entity<MailSubscriber>()
+                .HasIndex(s => s.UnsubscribeToken)
+                .IsUnique();
+
+            builder.Entity<MailSubscriber>()
+                .HasIndex(s => new { s.TemplateBaseName, s.IsActive });
+
+            builder.Entity<MailSubscriber>()
+                .HasIndex(s => s.ConfirmToken);
+
+            builder.Entity<PendingConfirmationEmail>()
+                .HasIndex(p => p.SentAt);
+
+            builder.Entity<EmailSendLog>()
+                .HasOne<MailSubscriber>()
+                .WithMany()
+                .HasForeignKey(l => l.SubscriberId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<EmailSendLog>()
+                .HasOne<MailSchedule>()
+                .WithMany()
+                .HasForeignKey(l => l.ScheduleId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
