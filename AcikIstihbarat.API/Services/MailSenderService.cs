@@ -56,14 +56,38 @@ namespace AcikIstihbarat.API.Services
         {
             var confirmUrl = $"{_mailOptions.PublicApiBaseUrl}/api/public/mail/confirm?token={confirmToken}";
 
-            var itemsHtml = string.Join("", templateDisplayNames.Select(n => $"<li>{WebUtility.HtmlEncode(n)}</li>"));
+            var itemsHtml = string.Join("", templateDisplayNames.Select(n =>
+                $"<li style=\"padding:4px 0;\">{WebUtility.HtmlEncode(n)}</li>"));
             var html = $"""
                 <!DOCTYPE html>
                 <html lang="tr">
-                <body>
-                    <p>Aşağıdaki bültenlere aboneliğinizi onaylamak için bağlantıya tıklayın:</p>
-                    <ul>{itemsHtml}</ul>
-                    <p><a href="{confirmUrl}">Aboneliği Onayla</a></p>
+                <body style="margin:0;padding:0;background-color:#f4f4f4;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:24px 0;">
+                        <tr>
+                            <td align="center">
+                                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #0891b2;border-radius:8px;overflow:hidden;">
+                                    <tr>
+                                        <td style="background-color:#06b6d4;padding:16px 24px;">
+                                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td align="left" width="33%" style="font-size:16px;font-weight:bold;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">Açık İstihbarat</td>
+                                                    <td align="center" width="34%" style="font-size:16px;font-weight:bold;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">Bültenler</td>
+                                                    <td width="33%">&nbsp;</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:32px 24px;text-align:center;font-family:Arial,Helvetica,sans-serif;color:#333333;">
+                                            <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">Aşağıdaki Açık İstihbarat bültenlerine abonelik başvurunuzu lütfen teyit edin.</p>
+                                            <ul style="list-style:none;margin:0 0 24px;padding:0;font-size:15px;font-weight:bold;color:#0e7490;">{itemsHtml}</ul>
+                                            <a href="{confirmUrl}" style="display:inline-block;background-color:#0891b2;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;padding:12px 28px;border-radius:6px;">Aboneliği Onayla</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
                 </body>
                 </html>
                 """;
