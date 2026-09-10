@@ -15,6 +15,8 @@ RUN npm run build
 FROM nginx:alpine
 # Copy compiled files to Nginx html directory
 COPY --from=builder /app/dist /usr/share/nginx/html
+# SPA fallback config so client-side routes (e.g. /login) work on hard reload
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
