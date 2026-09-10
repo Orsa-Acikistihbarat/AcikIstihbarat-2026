@@ -180,8 +180,8 @@ namespace AcikIstihbarat.API.Controllers.Public
                 await _db.SaveChangesAsync(ct);
             }
 
-            var body = "<h2>Bülten aboneliğiniz iptal edildi.</h2>";
-            return Content(PageShell("Bültenden çıkıldı", body), "text/html");
+            var body = "<h2>Aboneliğiniz İptal Edildi</h2>";
+            return Content(PageShell("Aboneliğiniz İptal Edildi", body), "text/html");
         }
 
         [HttpPost("subscribe")]

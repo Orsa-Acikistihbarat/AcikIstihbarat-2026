@@ -112,7 +112,7 @@ namespace AcikIstihbarat.API.Services
         {
             const string footerTemplate =
                 "<div style=\"margin-top:24px;padding-top:16px;border-top:1px solid #ddd;font-size:12px;color:#888;text-align:center;\">" +
-                "<a href=\"{0}\">Bu bültenden çıkmak için tıklayın</a></div>";
+                "<a href=\"{0}\">Bülten Aboneliğinizi İptal İçin Tıklayın</a></div>";
             var footer = string.Format(footerTemplate, unsubscribeUrl);
 
             var bodyCloseIndex = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
