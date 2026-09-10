@@ -150,11 +150,11 @@ export default function NewsletterSubscribeForm({ folders }: { folders: string[]
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 p-6 shadow-lg">
             <h3 className="text-lg font-heading font-semibold text-slate-900 dark:text-white mb-4">
-              {successNames.length > 0 ? 'Onay e-postası gönderildi' : 'Abonelik tamamlanamadı'}
+              {successNames.length > 0 ? 'Tek Bir Adım Kaldı' : 'Abonelik tamamlanamadı'}
             </h3>
             {successNames.length > 0 && (
               <div className="mb-4 text-sm text-slate-700 dark:text-slate-300">
-                <p>E-postanıza gönderilen onay bağlantısına tıklayın:</p>
+                <p>Lütfen yolladığımız eposta üzerinden aşağıdaki bültenlere aboneliğinizi teyit edin</p>
                 <ul className="list-disc list-inside mt-2">
                   {successNames.map((name) => (
                     <li key={name}>{name}</li>
