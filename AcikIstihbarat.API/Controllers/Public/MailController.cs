@@ -233,33 +233,8 @@ namespace AcikIstihbarat.API.Controllers.Public
         [HttpGet("confirm")]
         public async Task<IActionResult> ConfirmPrompt([FromQuery] Guid token, CancellationToken ct)
         {
-            // Does NOT mutate state - mirrors UnsubscribeConfirm's GET/POST split above, so
-            // automated mail-security link-prefetchers can't silently activate a subscription just
-            // by fetching this page.
-            var matches = await _db.MailSubscribers.Where(s => s.ConfirmToken == token).ToListAsync(ct);
-            if (matches.Count == 0)
-            {
-                return Content(BuildConfirmationLandingHtml(LandingCase.Invalid, new(), new()), "text/html");
-            }
-
-            var now = DateTime.UtcNow;
-            var pending = matches.Where(s => !s.IsActive && s.ConfirmTokenExpiresAt >= now).ToList();
-            var expired = matches.Where(s => !s.IsActive && s.ConfirmTokenExpiresAt < now).ToList();
-
-            if (pending.Count == 0)
-            {
-                return Content(
-                    BuildConfirmationLandingHtml(LandingCase.AllExpired, new(), expired.Select(s => s.TemplateBaseName).Select(NewsletterDisplayNames.Resolve).ToList()),
-                    "text/html");
-            }
-
-            var pendingNames = pending.Select(s => s.TemplateBaseName).Select(NewsletterDisplayNames.Resolve).ToList();
-            return Content(BuildConfirmationLandingHtml(LandingCase.PendingPrompt, pendingNames, new(), token), "text/html");
-        }
-
-        [HttpPost("confirm")]
-        public async Task<IActionResult> ConfirmSubmit([FromForm] Guid token, CancellationToken ct)
-        {
+            // Confirms immediately on GET (single click from the email button, no second
+            // "Aboneliği Onayla" button on a landing page) rather than requiring a follow-up POST.
             var matches = await _db.MailSubscribers.Where(s => s.ConfirmToken == token).ToListAsync(ct);
             if (matches.Count == 0)
             {
@@ -297,30 +272,17 @@ namespace AcikIstihbarat.API.Controllers.Public
             Invalid,
             AllExpired,
             Success,
-            PendingPrompt,
         }
 
         private string BuildConfirmationLandingHtml(
             LandingCase landingCase,
             List<string> confirmedDisplayNames,
-            List<string> expiredDisplayNames,
-            Guid? promptToken = null)
+            List<string> expiredDisplayNames)
         {
             var siteUrl = _mailOptions.PublicSiteBaseUrl;
             string heading, body;
             switch (landingCase)
             {
-                case LandingCase.PendingPrompt:
-                    heading = "Aboneliğinizi onaylayın";
-                    body = "<p>Aşağıdaki bültenlere aboneliğinizi onaylamak için butona tıklayın:</p>"
-                        + BuildList(confirmedDisplayNames)
-                        + $"""
-                        <form method="post" action="/api/public/mail/confirm">
-                            <input type="hidden" name="token" value="{promptToken}" />
-                            <button type="submit">Aboneliği Onayla</button>
-                        </form>
-                        """;
-                    break;
                 case LandingCase.Invalid:
                     heading = "Geçersiz bağlantı";
                     body = "<p>Bu onay bağlantısı geçerli değil. Aboneliğinizi tekrar başlatmak için bültenler sayfasına dönebilirsiniz.</p>";
@@ -331,8 +293,9 @@ namespace AcikIstihbarat.API.Controllers.Public
                         + BuildList(expiredDisplayNames);
                     break;
                 default: // Success
-                    heading = "Aboneliğiniz onaylandı!";
-                    body = "<p>Aşağıdaki bültenlere aboneliğiniz başarıyla onaylandı:</p>" + BuildList(confirmedDisplayNames);
+                    heading = "Aboneliğiniz Başlatıldı";
+                    body = "<p>Yarın sabahtan itibaren her sabah bültenlerinizi posta kutunuza yolluyor olacağız.</p>"
+                        + BuildList(confirmedDisplayNames);
                     if (expiredDisplayNames.Count > 0)
                     {
                         body += "<p>Şu bültenler için onay süresi dolmuş, tekrar abone olmanız gerekiyor:</p>" + BuildList(expiredDisplayNames);
