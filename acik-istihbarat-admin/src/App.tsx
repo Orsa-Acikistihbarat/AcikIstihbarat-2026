@@ -8,6 +8,7 @@ import Categories from './pages/Categories';
 import MediaLibrary from './pages/MediaLibrary';
 import HaberlerList from './pages/HaberlerList';
 import HaberEditor from './pages/HaberEditor';
+import BultenAboneleri from './pages/BultenAboneleri';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -27,6 +28,7 @@ function AppRoutes() {
         <Route path="haberler" element={<HaberlerList />} />
         <Route path="haberler/yeni" element={<HaberEditor />} />
         <Route path="haberler/duzenle/:id" element={<HaberEditor />} />
+        <Route path="adminpanel/bultenlerekimleraboneoldu" element={<BultenAboneleri />} />
       </Route>
     </Routes>
   );

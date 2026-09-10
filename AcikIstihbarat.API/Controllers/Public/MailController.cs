@@ -177,6 +177,7 @@ namespace AcikIstihbarat.API.Controllers.Public
             if (subscriber is not null)
             {
                 subscriber.IsActive = false;
+                subscriber.UnsubscribedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync(ct);
             }
 
@@ -360,6 +361,9 @@ namespace AcikIstihbarat.API.Controllers.Public
                 }
 
                 s.IsActive = true;
+                s.ConfirmedAt ??= now;      // preserve first-ever confirmation date
+                s.LastConfirmedAt = now;    // reflects the current subscription period's start
+                s.UnsubscribedAt = null;    // clear any prior unsubscribe date on resubscribe
                 confirmedNames.Add(s.TemplateBaseName);
             }
 

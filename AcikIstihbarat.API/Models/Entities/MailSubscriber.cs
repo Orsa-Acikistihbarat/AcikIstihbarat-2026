@@ -33,5 +33,12 @@ namespace AcikIstihbarat.API.Models.Entities
         // than being masked by a Guid.Empty/default(DateTime) fallback.
         public Guid ConfirmToken { get; set; }
         public DateTime ConfirmTokenExpiresAt { get; set; }
+
+        // First-ever confirmation date, never overwritten by later resubscribes.
+        public DateTime? ConfirmedAt { get; set; }
+        // Most recent confirmation date - reflects the start of the current subscription period.
+        public DateTime? LastConfirmedAt { get; set; }
+        // Date of the most recent unsubscribe action; cleared back to null on resubscribe.
+        public DateTime? UnsubscribedAt { get; set; }
     }
 }
