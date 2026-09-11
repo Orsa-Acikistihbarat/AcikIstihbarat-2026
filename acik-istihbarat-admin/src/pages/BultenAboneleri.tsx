@@ -11,15 +11,26 @@ interface SubscriberRow {
   isActive: boolean;
 }
 
+interface SummaryItem {
+  key: string;
+  title: string;
+  subscribedCount: number;
+  unsubscribedCount: number;
+}
+
 const formatDate = (value: string | null) =>
   value ? new Date(value).toLocaleDateString('tr-TR') : '-';
+
+const NEWSLETTER_ORDER = ['AcikGazete', 'AcikKose'];
 
 const BultenAboneleri: React.FC = () => {
   const [rows, setRows] = useState<SubscriberRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<SummaryItem[]>([]);
 
   useEffect(() => {
     fetchSubscribers();
+    fetchSummary();
   }, []);
 
   const fetchSubscribers = async () => {
@@ -30,6 +41,15 @@ const BultenAboneleri: React.FC = () => {
       console.error('Failed to fetch subscribers', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSummary = async () => {
+    try {
+      const response = await api.get('/mail/subscribers/summary');
+      setSummary(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch subscriber summary', error);
     }
   };
 
@@ -49,6 +69,24 @@ const BultenAboneleri: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold text-gray-800">Bültenlere Kimler Abone Oldu</h2>
       </div>
+
+      {summary.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {NEWSLETTER_ORDER.map((key) => {
+            const item = summary.find((s) => s.key === key);
+            if (!item) return null;
+            return (
+              <div key={key} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">{item.title}</h3>
+                <div className="flex justify-between text-sm">
+                  <span className="text-emerald-600 font-semibold">{item.subscribedCount} abone</span>
+                  <span className="text-red-600 font-semibold">{item.unsubscribedCount} iptal</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">

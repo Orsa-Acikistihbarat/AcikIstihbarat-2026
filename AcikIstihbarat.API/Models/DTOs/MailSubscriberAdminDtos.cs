@@ -9,4 +9,12 @@ namespace AcikIstihbarat.API.Models.DTOs
         public DateTime? UnsubscriptionDate { get; set; }
         public bool IsActive { get; set; }
     }
+
+    public class MailSubscriberSummaryItem
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public int SubscribedCount { get; set; }
+        public int UnsubscribedCount { get; set; }
+    }
 }

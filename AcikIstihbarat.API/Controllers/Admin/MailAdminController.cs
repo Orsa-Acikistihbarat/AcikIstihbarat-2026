@@ -40,6 +40,38 @@ namespace AcikIstihbarat.API.Controllers.Admin
             return Ok(rows);
         }
 
+        [HttpGet("subscribers/summary")]
+        public async Task<IActionResult> GetSubscriberSummary(CancellationToken ct)
+        {
+            var grouped = await _db.MailSubscribers
+                .Where(s => s.ConfirmedAt != null)
+                .GroupBy(s => s.TemplateBaseName)
+                .Select(g => new
+                {
+                    TemplateBaseName = g.Key,
+                    Subscribed = g.Count(s => s.IsActive),
+                    Unsubscribed = g.Count(s => !s.IsActive),
+                })
+                .ToListAsync(ct);
+
+            // 0-fill every known newsletter so a card is never silently missing.
+            var result = NewsletterDisplayNames.Keys
+                .Select(key =>
+                {
+                    var match = grouped.FirstOrDefault(g => g.TemplateBaseName == key);
+                    return new MailSubscriberSummaryItem
+                    {
+                        Key = key,
+                        Title = NewsletterDisplayNames.Resolve(key),
+                        SubscribedCount = match?.Subscribed ?? 0,
+                        UnsubscribedCount = match?.Unsubscribed ?? 0,
+                    };
+                })
+                .ToList();
+
+            return Ok(result);
+        }
+
         [HttpPut("subscribers/{id:int}/deactivate")]
         public async Task<IActionResult> DeactivateSubscriber(int id, CancellationToken ct)
         {

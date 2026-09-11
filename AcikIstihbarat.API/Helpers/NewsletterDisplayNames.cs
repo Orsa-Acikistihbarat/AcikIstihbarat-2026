@@ -11,6 +11,8 @@ namespace AcikIstihbarat.API.Helpers
             ["AcikKose"] = "Köşe Yazarları",
         };
 
+        public static IReadOnlyCollection<string> Keys => Labels.Keys;
+
         public static string Resolve(string templateBaseName) =>
             Labels.TryGetValue(templateBaseName, out var label) ? label : templateBaseName;
     }
