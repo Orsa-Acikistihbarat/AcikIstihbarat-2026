@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ban } from 'lucide-react';
+import { UserX, UserCheck } from 'lucide-react';
 import api from '../lib/axios';
 
 interface SubscriberRow {
@@ -117,11 +117,11 @@ const BultenAboneleri: React.FC = () => {
                       title="Aboneliği İptal Et"
                       className="inline-flex text-red-600 hover:text-red-800"
                     >
-                      <Ban className="size-4" />
+                      <UserX className="size-4" />
                     </button>
                   ) : (
                     <span title="Zaten pasif" className="inline-flex text-gray-300 cursor-not-allowed">
-                      <Ban className="size-4" />
+                      <UserCheck className="size-4" />
                     </span>
                   )}
                 </td>
