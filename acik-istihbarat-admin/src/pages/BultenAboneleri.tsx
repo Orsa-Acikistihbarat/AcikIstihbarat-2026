@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { Ban } from 'lucide-react';
 import api from '../lib/axios';
 
 interface SubscriberRow {
+  id: number;
   email: string;
   newsletterDisplayName: string;
   subscriptionDate: string | null;
   unsubscriptionDate: string | null;
+  isActive: boolean;
 }
 
 const formatDate = (value: string | null) =>
@@ -30,6 +33,17 @@ const BultenAboneleri: React.FC = () => {
     }
   };
 
+  const handleDeactivate = async (id: number) => {
+    if (window.confirm('Bu e-postanın bülten aboneliğini iptal etmek istediğinize emin misiniz?')) {
+      try {
+        await api.put(`/mail/subscribers/${id}/deactivate`);
+        fetchSubscribers();
+      } catch (error) {
+        alert('İşlem başarısız.');
+      }
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -44,19 +58,35 @@ const BultenAboneleri: React.FC = () => {
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Abone Olunan Bülten</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Abonelik Tarihi</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Abonelik İptal Tarihi</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">İşlemler</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
-              <tr><td colSpan={4} className="px-6 py-4 text-center">Yükleniyor...</td></tr>
+              <tr><td colSpan={5} className="px-6 py-4 text-center">Yükleniyor...</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-4 text-center text-gray-500">Henüz abone bulunmuyor.</td></tr>
-            ) : rows.map((r, i) => (
-              <tr key={`${r.email}-${r.newsletterDisplayName}-${i}`}>
+              <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">Henüz abone bulunmuyor.</td></tr>
+            ) : rows.map((r) => (
+              <tr key={r.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{r.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{r.newsletterDisplayName}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{formatDate(r.subscriptionDate)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{formatDate(r.unsubscriptionDate)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                  {r.isActive ? (
+                    <button
+                      onClick={() => handleDeactivate(r.id)}
+                      title="Aboneliği İptal Et"
+                      className="inline-flex text-red-600 hover:text-red-800"
+                    >
+                      <Ban className="size-4" />
+                    </button>
+                  ) : (
+                    <span title="Zaten pasif" className="inline-flex text-gray-300 cursor-not-allowed">
+                      <Ban className="size-4" />
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
