@@ -56,7 +56,8 @@ export default function AcikMedyaIframe({ html, title }: AcikMedyaIframeProps) {
         ref={iframeRef}
         srcDoc={html}
         title={title}
-        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        // allow-scripts is safe here: html is first-party pipeline output (see lib/newsletters.ts), never user input
+        sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
         style={{
           width: '100%',
           border: 'none',
