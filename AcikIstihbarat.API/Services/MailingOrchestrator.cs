@@ -105,7 +105,7 @@ namespace AcikIstihbarat.API.Services
                     _logger.LogInformation("[DRYRUN] would send '{Subject}' to {Email}", subject, subscriber.Email);
                     if (_tracker.IsAnyRunActive())
                     {
-                        _tracker.UpdateProgress(success: true);
+                        _tracker.UpdateProgress(schedule.TemplateBaseName, success: true);
                     }
                 }
 
@@ -166,7 +166,7 @@ namespace AcikIstihbarat.API.Services
 
                         if (_tracker.IsAnyRunActive())
                         {
-                            _tracker.UpdateProgress(success: true);
+                            _tracker.UpdateProgress(schedule.TemplateBaseName, success: true);
                         }
                     }
                     catch (Exception ex)
@@ -186,7 +186,7 @@ namespace AcikIstihbarat.API.Services
 
                         if (_tracker.IsAnyRunActive())
                         {
-                            _tracker.UpdateProgress(success: false, error: ex.Message);
+                            _tracker.UpdateProgress(schedule.TemplateBaseName, success: false, error: ex.Message);
                         }
 
                         if (subscriber.ConsecutiveFailureCount > _guardrails.MaxConsecutiveFailures)

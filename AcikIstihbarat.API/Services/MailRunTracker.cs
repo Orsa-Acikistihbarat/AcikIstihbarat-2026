@@ -47,10 +47,19 @@ namespace AcikIstihbarat.API.Services
             }
         }
 
-        public void UpdateProgress(bool success, string? error = null)
+        public void UpdateProgress(string? newsletterKey, bool success, string? error = null)
         {
             lock (_lock)
             {
+                if (!_currentStatus.IsRunning) return;
+
+                if (!string.IsNullOrEmpty(newsletterKey) &&
+                    _currentStatus.ActiveNewsletterKeys.Count > 0 &&
+                    !_currentStatus.ActiveNewsletterKeys.Contains(newsletterKey))
+                {
+                    return;
+                }
+
                 _currentStatus.SentCount++;
                 if (success)
                 {
@@ -66,6 +75,9 @@ namespace AcikIstihbarat.API.Services
                 }
             }
         }
+
+        public void UpdateProgress(bool success, string? error = null)
+            => UpdateProgress(null, success, error);
 
         public void SetStatusMessage(string message)
         {

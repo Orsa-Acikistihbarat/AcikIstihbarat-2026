@@ -16,6 +16,13 @@ namespace AcikIstihbarat.API.Services
         void SetCurrentNewsletter(string key);
 
         /// <summary>
+        /// Thread-safely increments SentCount and either SuccessCount or FailureCount
+        /// for the specified newsletter key. If a newsletterKey is provided and does not
+        /// match the active batch, the update is ignored.
+        /// </summary>
+        void UpdateProgress(string? newsletterKey, bool success, string? error = null);
+
+        /// <summary>
         /// Thread-safely increments SentCount and either SuccessCount or FailureCount.
         /// </summary>
         void UpdateProgress(bool success, string? error = null);

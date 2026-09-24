@@ -94,5 +94,21 @@ namespace AcikIstihbarat.API.Tests.Services
             var secondStart = tracker.TryStartBatchRun(new List<string> { "AcikKose" }, 15, out string _);
             Assert.True(secondStart);
         }
+
+        [Fact]
+        public void UpdateProgress_WhenNewsletterKeyNotMatchingBatch_IgnoresIncrement()
+        {
+            var tracker = new MailRunTracker();
+            tracker.TryStartBatchRun(new List<string> { "AcikGazete" }, 19, out string _);
+
+            // Send for AcikGazete (in batch) -> increments
+            tracker.UpdateProgress("AcikGazete", success: true);
+            Assert.Equal(1, tracker.GetCurrentStatus().SentCount);
+
+            // Send for AcikKose (not in batch) -> ignored
+            tracker.UpdateProgress("AcikKose", success: true);
+            Assert.Equal(1, tracker.GetCurrentStatus().SentCount);
+            Assert.Equal(1, tracker.GetCurrentStatus().SuccessCount);
+        }
     }
 }
