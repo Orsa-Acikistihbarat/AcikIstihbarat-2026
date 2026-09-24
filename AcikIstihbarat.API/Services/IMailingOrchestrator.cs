@@ -4,6 +4,8 @@ namespace AcikIstihbarat.API.Services
     {
         Task RunScheduleAsync(int scheduleId, CancellationToken ct = default);
 
+        Task RunScheduleAsync(int scheduleId, bool forceResend, CancellationToken ct = default);
+
         Task DispatchPendingConfirmationEmailsAsync(CancellationToken ct = default);
     }
 }

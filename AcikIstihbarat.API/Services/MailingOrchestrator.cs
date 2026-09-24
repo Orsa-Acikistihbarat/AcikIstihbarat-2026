@@ -18,6 +18,7 @@ namespace AcikIstihbarat.API.Services
         private readonly IMailTemplateResolver _templateResolver;
         private readonly IMailSenderService _mailSender;
         private readonly IGmailOAuthTokenProvider _tokenProvider;
+        private readonly IMailRunTracker _tracker;
         private readonly MailOptions _mailOptions;
         private readonly MailGuardrailOptions _guardrails;
         private readonly ILogger<MailingOrchestrator> _logger;
@@ -27,6 +28,7 @@ namespace AcikIstihbarat.API.Services
             IMailTemplateResolver templateResolver,
             IMailSenderService mailSender,
             IGmailOAuthTokenProvider tokenProvider,
+            IMailRunTracker tracker,
             IOptions<MailOptions> mailOptions,
             ILogger<MailingOrchestrator> logger)
         {
@@ -34,17 +36,26 @@ namespace AcikIstihbarat.API.Services
             _templateResolver = templateResolver;
             _mailSender = mailSender;
             _tokenProvider = tokenProvider;
+            _tracker = tracker;
             _mailOptions = mailOptions.Value;
             _guardrails = mailOptions.Value.Guardrails;
             _logger = logger;
         }
 
-        public async Task RunScheduleAsync(int scheduleId, CancellationToken ct = default)
+        public Task RunScheduleAsync(int scheduleId, CancellationToken ct = default)
+            => RunScheduleAsync(scheduleId, forceResend: false, ct);
+
+        public async Task RunScheduleAsync(int scheduleId, bool forceResend, CancellationToken ct = default)
         {
             var schedule = await _db.MailSchedules.FirstOrDefaultAsync(s => s.Id == scheduleId, ct);
             if (schedule is null || !schedule.IsActive)
             {
                 return;
+            }
+
+            if (_tracker.IsAnyRunActive())
+            {
+                _tracker.SetCurrentNewsletter(schedule.TemplateBaseName);
             }
 
             var resolved = _templateResolver.ResolveLatest(schedule.TemplateBaseName);
@@ -53,6 +64,10 @@ namespace AcikIstihbarat.API.Services
                 _logger.LogWarning(
                     "No template available for {TemplateBaseName}, skipping this run.",
                     schedule.TemplateBaseName);
+                if (_tracker.IsAnyRunActive())
+                {
+                    _tracker.SetStatusMessage($"{schedule.TemplateBaseName} için şablon bulunamadı.");
+                }
                 // Still advance NextRunAtUtc below - a missing template today isn't a scheduling bug.
                 RecomputeNextRun(schedule);
                 await _db.SaveChangesAsync(ct);
@@ -67,11 +82,15 @@ namespace AcikIstihbarat.API.Services
                 .ToListAsync(ct);
 
             var toSend = subscribers
-                .Where(s => s.LastSentAt is null || IstanbulClock.ToLocal(s.LastSentAt.Value).Date != today)
+                .Where(s => forceResend || s.LastSentAt is null || IstanbulClock.ToLocal(s.LastSentAt.Value).Date != today)
                 .ToList();
 
             if (toSend.Count == 0)
             {
+                if (_tracker.IsAnyRunActive())
+                {
+                    _tracker.SetStatusMessage($"{schedule.TemplateBaseName}: Tüm abonelere bugün zaten gönderilmiş (0 alıcı).");
+                }
                 RecomputeNextRun(schedule);
                 await _db.SaveChangesAsync(ct);
                 return;
@@ -84,6 +103,10 @@ namespace AcikIstihbarat.API.Services
                 foreach (var subscriber in toSend)
                 {
                     _logger.LogInformation("[DRYRUN] would send '{Subject}' to {Email}", subject, subscriber.Email);
+                    if (_tracker.IsAnyRunActive())
+                    {
+                        _tracker.UpdateProgress(success: true);
+                    }
                 }
 
                 RecomputeNextRun(schedule);
@@ -140,6 +163,11 @@ namespace AcikIstihbarat.API.Services
                         subscriber.LastSendStatus = "Sent";
                         subscriber.ConsecutiveFailureCount = 0;
                         consecutiveSmtpFailures = 0;
+
+                        if (_tracker.IsAnyRunActive())
+                        {
+                            _tracker.UpdateProgress(success: true);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -155,6 +183,11 @@ namespace AcikIstihbarat.API.Services
 
                         subscriber.LastSendStatus = "Failed";
                         subscriber.ConsecutiveFailureCount++;
+
+                        if (_tracker.IsAnyRunActive())
+                        {
+                            _tracker.UpdateProgress(success: false, error: ex.Message);
+                        }
 
                         if (subscriber.ConsecutiveFailureCount > _guardrails.MaxConsecutiveFailures)
                         {

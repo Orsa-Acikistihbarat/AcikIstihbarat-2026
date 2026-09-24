@@ -38,6 +38,7 @@ builder.Services.AddScoped<AcikIstihbarat.API.Services.IAramaService, AcikIstihb
 builder.Services.Configure<AcikIstihbarat.API.Models.DTOs.MailOptions>(builder.Configuration.GetSection("Mail"));
 builder.Services.AddHttpClient("GoogleOAuth");
 builder.Services.AddSingleton<AcikIstihbarat.API.Services.IGmailOAuthTokenProvider, AcikIstihbarat.API.Services.GmailOAuthTokenProvider>();
+builder.Services.AddSingleton<AcikIstihbarat.API.Services.IMailRunTracker, AcikIstihbarat.API.Services.MailRunTracker>();
 builder.Services.AddScoped<AcikIstihbarat.API.Services.IMailTemplateResolver, AcikIstihbarat.API.Services.MailTemplateResolver>();
 builder.Services.AddScoped<AcikIstihbarat.API.Services.IMailSenderService, AcikIstihbarat.API.Services.MailSenderService>();
 builder.Services.AddScoped<AcikIstihbarat.API.Services.IMailingOrchestrator, AcikIstihbarat.API.Services.MailingOrchestrator>();
