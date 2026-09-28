@@ -103,6 +103,34 @@ namespace AcikIstihbarat.API.Controllers.Admin
             return Ok(ToAdminItem(subscriber));
         }
 
+        [HttpPost("subscribers/heal")]
+        public async Task<IActionResult> HealSubscribers(CancellationToken ct)
+        {
+            var affectedSubscriberIds = await _db.EmailSendLogs
+                .Where(l => !l.Success && l.ErrorMessage != null && l.ErrorMessage.Contains("SmtpClient is not connected"))
+                .Select(l => l.SubscriberId)
+                .Distinct()
+                .ToListAsync(ct);
+
+            var affectedSubscribers = await _db.MailSubscribers
+                .Where(s => affectedSubscriberIds.Contains(s.Id) && s.ConsecutiveFailureCount > 0)
+                .ToListAsync(ct);
+
+            foreach (var sub in affectedSubscribers)
+            {
+                sub.ConsecutiveFailureCount = 0;
+                sub.LastSendStatus = null;
+            }
+
+            await _db.SaveChangesAsync(ct);
+
+            return Ok(new
+            {
+                message = $"{affectedSubscribers.Count} abonenin haksız hata sayacı başarıyla sıfırlandı.",
+                healedCount = affectedSubscribers.Count
+            });
+        }
+
         [HttpPost("trigger")]
         public async Task<IActionResult> TriggerManualSend(
             [FromBody] TriggerMailRequest request,

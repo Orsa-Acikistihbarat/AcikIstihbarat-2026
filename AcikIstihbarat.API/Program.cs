@@ -155,6 +155,7 @@ using (var scope = app.Services.CreateScope())
         await DataSeeder.SeedAdminUserAsync(services);
         await DataSeeder.SeedKategorilerAsync(services);
         await DataSeeder.SeedMailSchedulesAsync(services);
+        await DataSeeder.HealFalselyIncrementedSubscribersAsync(services);
     }
     catch (Exception ex)
     {

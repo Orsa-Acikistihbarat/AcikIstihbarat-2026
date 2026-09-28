@@ -1,3 +1,5 @@
+using System.IO;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using AcikIstihbarat.API.Data;
 using AcikIstihbarat.API.Models.DTOs;
@@ -121,9 +123,7 @@ namespace AcikIstihbarat.API.Services
             try
             {
                 client = new SmtpClient();
-                await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
-                var accessToken = await _tokenProvider.GetAccessTokenAsync(ct);
-                await client.AuthenticateAsync(new SaslMechanismOAuth2(_mailOptions.GmailOAuth.SenderAddress, accessToken), ct);
+                await EnsureConnectedAsync(client, ct);
 
                 for (var i = 0; i < toSend.Count; i++)
                 {
@@ -148,7 +148,33 @@ namespace AcikIstihbarat.API.Services
                             UnsubscribeToken = subscriber.UnsubscribeToken,
                         };
 
-                        await _mailSender.SendAsync(client, request, ct);
+                        // Pre-flight check: ensure socket is connected and authenticated
+                        await EnsureConnectedAsync(client, ct);
+
+                        try
+                        {
+                            await _mailSender.SendAsync(client, request, ct);
+                        }
+                        catch (Exception sendEx) when (IsTransientOrConnectionError(sendEx, out var is421))
+                        {
+                            _logger.LogWarning(sendEx,
+                                "Transient error sending to {Email} (is421={Is421}). Reconnecting and retrying once...",
+                                subscriber.Email, is421);
+
+                            if (is421)
+                            {
+                                // Backoff delay for Google Workspace rate-limit deferral
+                                await Task.Delay(10000, ct);
+                            }
+
+                            if (client.IsConnected)
+                            {
+                                try { await client.DisconnectAsync(true, ct); } catch { /* ignore */ }
+                            }
+
+                            await EnsureConnectedAsync(client, ct);
+                            await _mailSender.SendAsync(client, request, ct);
+                        }
 
                         _db.EmailSendLogs.Add(new EmailSendLog
                         {
@@ -182,28 +208,37 @@ namespace AcikIstihbarat.API.Services
                         });
 
                         subscriber.LastSendStatus = "Failed";
-                        subscriber.ConsecutiveFailureCount++;
+
+                        if (IsPermanentRecipientFailure(ex))
+                        {
+                            subscriber.ConsecutiveFailureCount++;
+                            if (subscriber.ConsecutiveFailureCount > _guardrails.MaxConsecutiveFailures)
+                            {
+                                subscriber.IsActive = false;
+                                _logger.LogWarning(
+                                    "Auto-deactivated subscriber {SubscriberId} ({Email}) after {Count} consecutive permanent failures.",
+                                    subscriber.Id, subscriber.Email, subscriber.ConsecutiveFailureCount);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Did not increment ConsecutiveFailureCount for {Email} because error was infrastructure/transient: {Message}",
+                                subscriber.Email, ex.Message);
+                        }
 
                         if (_tracker.IsAnyRunActive())
                         {
                             _tracker.UpdateProgress(schedule.TemplateBaseName, success: false, error: ex.Message);
                         }
 
-                        if (subscriber.ConsecutiveFailureCount > _guardrails.MaxConsecutiveFailures)
-                        {
-                            subscriber.IsActive = false;
-                            _logger.LogWarning(
-                                "Auto-deactivated subscriber {SubscriberId} ({Email}) after {Count} consecutive failures.",
-                                subscriber.Id, subscriber.Email, subscriber.ConsecutiveFailureCount);
-                        }
-
-                        if (ex is SmtpCommandException or SmtpProtocolException)
+                        if (IsTransientOrConnectionError(ex, out _) || ex is SmtpCommandException or SmtpProtocolException)
                         {
                             consecutiveSmtpFailures++;
-                            if (consecutiveSmtpFailures >= 5)
+                            if (consecutiveSmtpFailures >= 3)
                             {
                                 _logger.LogError(ex,
-                                    "Aborting batch for {TemplateBaseName}: {Count} consecutive SMTP-level errors.",
+                                    "Aborting batch for {TemplateBaseName}: {Count} consecutive connection/SMTP-level errors.",
                                     schedule.TemplateBaseName, consecutiveSmtpFailures);
                                 break;
                             }
@@ -232,7 +267,7 @@ namespace AcikIstihbarat.API.Services
                 {
                     if (client.IsConnected)
                     {
-                        await client.DisconnectAsync(true, ct);
+                        try { await client.DisconnectAsync(true, ct); } catch { /* ignore */ }
                     }
                     client.Dispose();
                 }
@@ -275,16 +310,39 @@ namespace AcikIstihbarat.API.Services
             try
             {
                 client = new SmtpClient();
-                await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
-                var accessToken = await _tokenProvider.GetAccessTokenAsync(ct);
-                await client.AuthenticateAsync(new SaslMechanismOAuth2(_mailOptions.GmailOAuth.SenderAddress, accessToken), ct);
+                await EnsureConnectedAsync(client, ct);
 
                 foreach (var row in pending)
                 {
                     try
                     {
                         var names = row.TemplateDisplayNamesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        await _mailSender.SendConfirmationAsync(client, row.Email, row.ConfirmToken, names, ct);
+                        await EnsureConnectedAsync(client, ct);
+
+                        try
+                        {
+                            await _mailSender.SendConfirmationAsync(client, row.Email, row.ConfirmToken, names, ct);
+                        }
+                        catch (Exception sendEx) when (IsTransientOrConnectionError(sendEx, out var is421))
+                        {
+                            _logger.LogWarning(sendEx,
+                                "Transient error sending confirmation to {Email} (is421={Is421}). Reconnecting and retrying...",
+                                row.Email, is421);
+
+                            if (is421)
+                            {
+                                await Task.Delay(10000, ct);
+                            }
+
+                            if (client.IsConnected)
+                            {
+                                try { await client.DisconnectAsync(true, ct); } catch { /* ignore */ }
+                            }
+
+                            await EnsureConnectedAsync(client, ct);
+                            await _mailSender.SendConfirmationAsync(client, row.Email, row.ConfirmToken, names, ct);
+                        }
+
                         row.SentAt = DateTime.UtcNow;
                     }
                     catch (Exception ex)
@@ -304,11 +362,64 @@ namespace AcikIstihbarat.API.Services
                 {
                     if (client.IsConnected)
                     {
-                        await client.DisconnectAsync(true, ct);
+                        try { await client.DisconnectAsync(true, ct); } catch { /* ignore */ }
                     }
                     client.Dispose();
                 }
             }
+        }
+
+        private async Task EnsureConnectedAsync(SmtpClient client, CancellationToken ct)
+        {
+            if (!client.IsConnected)
+            {
+                _logger.LogInformation("Connecting SmtpClient to smtp.gmail.com:587 with STARTTLS...");
+                await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
+            }
+
+            if (!client.IsAuthenticated)
+            {
+                _logger.LogInformation("Authenticating SmtpClient via Google Workspace OAuth2...");
+                var accessToken = await _tokenProvider.GetAccessTokenAsync(ct);
+                await client.AuthenticateAsync(new SaslMechanismOAuth2(_mailOptions.GmailOAuth.SenderAddress, accessToken), ct);
+            }
+        }
+
+        internal static bool IsTransientOrConnectionError(Exception ex, out bool isRateLimit421)
+        {
+            isRateLimit421 = false;
+            if (ex is SmtpCommandException cmdEx)
+            {
+                if (cmdEx.StatusCode == SmtpStatusCode.ServiceNotAvailable || (int)cmdEx.StatusCode == 421)
+                {
+                    isRateLimit421 = true;
+                    return true;
+                }
+
+                if ((int)cmdEx.StatusCode >= 400 && (int)cmdEx.StatusCode < 500)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (ex is ServiceNotConnectedException or SmtpProtocolException or SocketException or IOException)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        internal static bool IsPermanentRecipientFailure(Exception ex)
+        {
+            if (ex is SmtpCommandException cmdEx)
+            {
+                return (int)cmdEx.StatusCode is 550 or 551 or 552 or 553 or 501;
+            }
+
+            return false;
         }
 
         private static void RecomputeNextRun(MailSchedule schedule)

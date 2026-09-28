@@ -118,5 +118,45 @@ namespace AcikIstihbarat.API.Data
 
             await context.SaveChangesAsync();
         }
+
+        public static async Task HealFalselyIncrementedSubscribersAsync(IServiceProvider serviceProvider)
+        {
+            var context = serviceProvider.GetRequiredService<AppDbContext>();
+            var logger = serviceProvider.GetRequiredService<ILogger<AppDbContext>>();
+
+            try
+            {
+                var affectedSubscriberIds = await context.EmailSendLogs
+                    .Where(l => !l.Success && l.ErrorMessage != null && l.ErrorMessage.Contains("SmtpClient is not connected"))
+                    .Select(l => l.SubscriberId)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (affectedSubscriberIds.Count > 0)
+                {
+                    var affectedSubscribers = await context.MailSubscribers
+                        .Where(s => affectedSubscriberIds.Contains(s.Id) && s.ConsecutiveFailureCount > 0)
+                        .ToListAsync();
+
+                    if (affectedSubscribers.Count > 0)
+                    {
+                        foreach (var sub in affectedSubscribers)
+                        {
+                            sub.ConsecutiveFailureCount = 0;
+                            sub.LastSendStatus = null;
+                        }
+
+                        await context.SaveChangesAsync();
+                        logger.LogInformation(
+                            "Healed {Count} subscribers by resetting falsely incremented failure counts due to transient SMTP disconnection.",
+                            affectedSubscribers.Count);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to heal falsely incremented subscribers during startup data check.");
+            }
+        }
     }
 }
