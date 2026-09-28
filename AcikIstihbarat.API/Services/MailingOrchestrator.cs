@@ -232,6 +232,14 @@ namespace AcikIstihbarat.API.Services
                             _tracker.UpdateProgress(schedule.TemplateBaseName, success: false, error: ex.Message);
                         }
 
+                        if (IsDailyLimitExceeded(ex))
+                        {
+                            _logger.LogError(ex,
+                                "CRITICAL: Daily sending limit / relay quota exceeded on Google Workspace for {Sender}. Aborting batch immediately to protect subscribers.",
+                                _mailOptions.GmailOAuth.SenderAddress);
+                            break;
+                        }
+
                         if (IsTransientOrConnectionError(ex, out _) || ex is SmtpCommandException or SmtpProtocolException)
                         {
                             consecutiveSmtpFailures++;
@@ -351,6 +359,12 @@ namespace AcikIstihbarat.API.Services
                         row.LastError = ex.Message;
                         _logger.LogError(
                             ex, "Failed to send confirmation email to {Email} (attempt {Attempt}).", row.Email, row.AttemptCount);
+
+                        if (IsDailyLimitExceeded(ex))
+                        {
+                            _logger.LogError("CRITICAL: Daily sending limit exceeded during confirmation emails. Aborting confirmation queue.");
+                            break;
+                        }
                     }
 
                     await _db.SaveChangesAsync(ct);
@@ -373,11 +387,15 @@ namespace AcikIstihbarat.API.Services
         {
             if (!client.IsConnected)
             {
-                _logger.LogInformation("Connecting SmtpClient to smtp.gmail.com:587 with STARTTLS...");
-                await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, ct);
+                var host = string.IsNullOrWhiteSpace(_mailOptions.SmtpHost) ? "smtp-relay.gmail.com" : _mailOptions.SmtpHost;
+                var port = _mailOptions.SmtpPort > 0 ? _mailOptions.SmtpPort : 587;
+                _logger.LogInformation("Connecting SmtpClient to {Host}:{Port} with STARTTLS...", host, port);
+                await client.ConnectAsync(host, port, SecureSocketOptions.StartTls, ct);
             }
 
-            if (!client.IsAuthenticated)
+            // Authenticate if credentials are provided and server advertises AUTH capability.
+            // If the SMTP Relay is configured in IP-only mode without required AUTH, authentication can be bypassed.
+            if (!client.IsAuthenticated && client.Capabilities.HasFlag(SmtpCapabilities.Authentication))
             {
                 _logger.LogInformation("Authenticating SmtpClient via Google Workspace OAuth2...");
                 var accessToken = await _tokenProvider.GetAccessTokenAsync(ct);
@@ -412,8 +430,32 @@ namespace AcikIstihbarat.API.Services
             return false;
         }
 
+        internal static bool IsDailyLimitExceeded(Exception ex)
+        {
+            if (ex is SmtpCommandException cmdEx)
+            {
+                var msg = cmdEx.Message ?? string.Empty;
+                if ((int)cmdEx.StatusCode is 550 or 452 or 554 or 421)
+                {
+                    if (msg.Contains("daily", StringComparison.OrdinalIgnoreCase) &&
+                        (msg.Contains("limit", StringComparison.OrdinalIgnoreCase) ||
+                         msg.Contains("quota", StringComparison.OrdinalIgnoreCase) ||
+                         msg.Contains("exceeded", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         internal static bool IsPermanentRecipientFailure(Exception ex)
         {
+            if (IsDailyLimitExceeded(ex))
+            {
+                return false;
+            }
+
             if (ex is SmtpCommandException cmdEx)
             {
                 return (int)cmdEx.StatusCode is 550 or 551 or 552 or 553 or 501;

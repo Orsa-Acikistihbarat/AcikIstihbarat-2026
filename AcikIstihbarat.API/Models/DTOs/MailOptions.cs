@@ -2,6 +2,8 @@ namespace AcikIstihbarat.API.Models.DTOs
 {
     public class MailOptions
     {
+        public string SmtpHost { get; set; } = "smtp-relay.gmail.com";
+        public int SmtpPort { get; set; } = 587;
         public string TemplatesDataDir { get; set; } = string.Empty;
         public string PublicApiBaseUrl { get; set; } = string.Empty;
         public string PublicSiteBaseUrl { get; set; } = string.Empty;

@@ -108,5 +108,37 @@ namespace AcikIstihbarat.API.Tests.Services
             Assert.False(is421);
             Assert.False(isPermanent);
         }
+    
+        [Fact]
+        public void DailyLimitExceeded_550_IsClassifiedAsDailyLimit_AndNotPermanentRecipientFailure()
+        {
+            var ex = new SmtpCommandException(
+                SmtpErrorCode.UnexpectedStatusCode,
+                SmtpStatusCode.MailboxUnavailable,
+                "5.4.5 Daily user sending limit exceeded."
+            );
+
+            var isDailyLimit = MailingOrchestrator.IsDailyLimitExceeded(ex);
+            var isPermanent = MailingOrchestrator.IsPermanentRecipientFailure(ex);
+
+            Assert.True(isDailyLimit);
+            Assert.False(isPermanent);
+        }
+
+        [Fact]
+        public void DailySmtpRelayLimitExceeded_IsClassifiedAsDailyLimit()
+        {
+            var ex = new SmtpCommandException(
+                SmtpErrorCode.UnexpectedStatusCode,
+                SmtpStatusCode.MailboxUnavailable,
+                "5.7.1 Daily SMTP relay limit exceeded for acikistihbarat.com"
+            );
+
+            var isDailyLimit = MailingOrchestrator.IsDailyLimitExceeded(ex);
+            var isPermanent = MailingOrchestrator.IsPermanentRecipientFailure(ex);
+
+            Assert.True(isDailyLimit);
+            Assert.False(isPermanent);
+        }
     }
 }
