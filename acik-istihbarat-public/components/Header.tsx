@@ -58,8 +58,16 @@ export default async function Header() {
                 ))}
               </div>
             </div>
-            
-            <form action="/arama" method="GET" className="relative sm:ml-4 flex items-center group animate-fade-in-up [animation-delay:200ms] [animation-fill-mode:forwards] opacity-0">
+
+            <a href="https://www.acikistihbarat.com/acikmedya/AcikGazete" target="_blank" rel="noopener noreferrer" className="font-heading font-semibold text-slate-600 hover:text-turquoise-600 dark:text-slate-400 dark:hover:text-turquoise-400 py-3 sm:px-3 animate-fade-in-up [animation-delay:200ms] [animation-fill-mode:forwards] opacity-0 transition-colors duration-300">
+              Açık Gazete
+            </a>
+
+            <a href="https://www.acikistihbarat.com/acikmedya/AcikKose" target="_blank" rel="noopener noreferrer" className="font-heading font-semibold text-slate-600 hover:text-turquoise-600 dark:text-slate-400 dark:hover:text-turquoise-400 py-3 sm:px-3 animate-fade-in-up [animation-delay:250ms] [animation-fill-mode:forwards] opacity-0 transition-colors duration-300">
+              Açık Köşe
+            </a>
+
+            <form action="/arama" method="GET" className="relative sm:ml-4 flex items-center group animate-fade-in-up [animation-delay:300ms] [animation-fill-mode:forwards] opacity-0">
               <input 
                 type="text" 
                 name="q" 
